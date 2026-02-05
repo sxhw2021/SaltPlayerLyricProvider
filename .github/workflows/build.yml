@@ -39,14 +39,14 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: chmod +x gradlew && ./gradlew build
 
       - name: Run lint
-        run: ./gradlew lint
+        run: chmod +x gradlew && ./gradlew lint
 
       - name: Build release APK
         if: github.event_name == 'release'
-        run: ./gradlew assembleRelease
+        run: chmod +x gradlew && ./gradlew assembleRelease
         env:
           KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload APK
         if: github.event_name == 'release'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: saltplayer-lyric-provider
           path: app/build/outputs/apk/release/
@@ -82,4 +82,4 @@ jobs:
           java-version: '17'
 
       - name: Run tests
-        run: ./gradlew test
+        run: chmod +x gradlew && ./gradlew test
