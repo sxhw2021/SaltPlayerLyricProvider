@@ -19,7 +19,15 @@
             android:value="@string/xposed_description" />
         <meta-data
             android:name="xposedminversion"
-            android:value="1" />
+            android:value="89" />
+
+        <service
+            android:name=".XposedInit"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="org.lsposed.lspd.QUERY_MODULES" />
+            </intent-filter>
+        </service>
 
         <activity
             android:name=".MainActivity"
