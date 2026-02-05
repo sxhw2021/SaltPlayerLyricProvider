@@ -14,6 +14,17 @@ object XposedBridge {
 
     private var isInitialized = false
 
+    @Suppress("UNCHECKED_CAST")
+    private fun getArrayClass(componentType: Class<*>): Class<Array<Any>> {
+        return java.lang.reflect.Array.newInstance(componentType, 0)::class.java as Class<Array<Any>>
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun getClassArrayClass(): Class<Array<Class<*>>> {
+        val tmp = arrayOf<Class<*>>(String::class.java)
+        return tmp::class.java as Class<Array<Class<*>>>
+    }
+
     fun initialize(classLoader: ClassLoader): Boolean {
         if (isInitialized) return true
 
@@ -27,31 +38,33 @@ object XposedBridge {
                 ClassLoader::class.java
             )
 
+            val classArrayClass = getClassArrayClass()
             findMethodMethod = xposedHelpersClass!!.getMethod(
                 "findMethodExactIfExists",
                 Class::class.java,
                 String::class.java,
-                Array<Class<*>>::class.java
+                classArrayClass
             )
 
             findConstructorMethod = xposedHelpersClass!!.getMethod(
                 "findConstructorExactIfExists",
                 Class::class.java,
-                Array<Class<*>>::class.java
+                classArrayClass
             )
 
+            val anyArrayClass = getArrayClass(Any::class.java)
             hookMethodMethod = xposedHelpersClass!!.getMethod(
                 "findAndHookMethod",
                 Class::class.java,
                 String::class.java,
-                Array<Any>::class.java,
+                anyArrayClass,
                 methodHookClass
             )
 
             hookConstructorMethod = xposedHelpersClass!!.getMethod(
                 "findAndHookConstructor",
                 Class::class.java,
-                Array<Any>::class.java,
+                anyArrayClass,
                 methodHookClass
             )
 
