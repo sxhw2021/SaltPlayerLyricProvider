@@ -1,7 +1,6 @@
 package com.saltplayer.lyric.provider.hook
 
 import java.lang.reflect.Method
-import java.lang.reflect.Constructor
 
 object XposedBridge {
     private var xposedHelpersClass: Class<*>? = null
@@ -13,7 +12,6 @@ object XposedBridge {
     private var findConstructorMethod: Method? = null
     private var hookMethodMethod: Method? = null
     private var hookConstructorMethod: Method? = null
-    private var invokeOriginalMethod: Method? = null
 
     private var isInitialized = false
 
@@ -31,39 +29,34 @@ object XposedBridge {
                 ClassLoader::class.java
             )
 
+            val arrayClass = Array<Class<*>>::class.java
             findMethodMethod = xposedHelpersClass?.getMethod(
                 "findMethodExactIfExists",
                 Class::class.java,
                 String::class.java,
-                Array<Class<*>>::class.java
+                arrayClass
             )
 
             findConstructorMethod = xposedHelpersClass?.getMethod(
                 "findConstructorExactIfExists",
                 Class::class.java,
-                Array<Class<*>>::class.java
+                arrayClass
             )
 
+            val anyArrayClass = Array<Any>::class.java
             hookMethodMethod = xposedHelpersClass?.getMethod(
                 "findAndHookMethod",
                 Class::class.java,
                 String::class.java,
-                Array<Any>::class.java,
+                anyArrayClass,
                 methodHookClass
             )
 
             hookConstructorMethod = xposedHelpersClass?.getMethod(
                 "findAndHookConstructor",
                 Class::class.java,
-                Array<Any>::class.java,
+                anyArrayClass,
                 methodHookClass
-            )
-
-            invokeOriginalMethod = xposedBridgeClass?.getMethod(
-                "invokeOriginalMethod",
-                Method::class.java,
-                Any::class.java,
-                Array<Any>::class.java
             )
 
             isInitialized = true
@@ -105,20 +98,25 @@ object XposedBridge {
         methodName: String,
         vararg parameterTypes: Class<*>
     ): Method? {
-        return findMethodExact(clazz, methodName, parameterTypes as Array<Class<*>>)
+        val arrayClass = Array<Class<*>>::class.java
+        val array = java.lang.reflect.Array.newInstance(parameterTypes.javaClass.componentType, parameterTypes.size) as Array<Class<*>>
+        for (i in parameterTypes.indices) {
+            array[i] = parameterTypes[i]
+        }
+        return findMethodExact(clazz, methodName, array)
     }
 
     fun findConstructorExact(
         clazz: Class<*>,
         parameterTypes: Array<Class<*>>
-    ): Constructor<*>? {
+    ): java.lang.reflect.Constructor<*>? {
         return try {
             @Suppress("UNCHECKED_CAST")
             findConstructorMethod?.invoke(
                 null,
                 clazz,
                 parameterTypes
-            ) as? Constructor<*>
+            ) as? java.lang.reflect.Constructor<*>
         } catch (e: Exception) {
             null
         }
@@ -127,8 +125,13 @@ object XposedBridge {
     fun findConstructorExactIfExists(
         clazz: Class<*>,
         vararg parameterTypes: Class<*>
-    ): Constructor<*>? {
-        return findConstructorExact(clazz, parameterTypes as Array<Class<*>>)
+    ): java.lang.reflect.Constructor<*>? {
+        val arrayClass = Array<Class<*>>::class.java
+        val array = java.lang.reflect.Array.newInstance(parameterTypes.javaClass.componentType, parameterTypes.size) as Array<Class<*>>
+        for (i in parameterTypes.indices) {
+            array[i] = parameterTypes[i]
+        }
+        return findConstructorExact(clazz, array)
     }
 
     fun hookMethod(
@@ -142,7 +145,8 @@ object XposedBridge {
             val hookerConstructor = hookerClass?.getDeclaredConstructor(methodHookClass)
             val hooker = hookerConstructor?.newInstance(callback)
 
-            val args = arrayOfNulls<Any>(parameterTypes.size + 2)
+            val anyArrayClass = Array<Any>::class.java
+            val args = java.lang.reflect.Array.newInstance(Any::class.java, parameterTypes.size + 2) as Array<Any?>
             args[0] = clazz
             args[1] = methodName
             for (i in parameterTypes.indices) {
@@ -166,7 +170,8 @@ object XposedBridge {
             val hookerConstructor = hookerClass?.getDeclaredConstructor(methodHookClass)
             val hooker = hookerConstructor?.newInstance(callback)
 
-            val args = arrayOfNulls<Any>(parameterTypes.size + 2)
+            val anyArrayClass = Array<Any>::class.java
+            val args = java.lang.reflect.Array.newInstance(Any::class.java, parameterTypes.size + 1) as Array<Any?>
             args[0] = clazz
             for (i in parameterTypes.indices) {
                 args[i + 1] = parameterTypes[i]
@@ -177,17 +182,6 @@ object XposedBridge {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-    }
-
-    fun hookMethod(
-        className: String,
-        classLoader: ClassLoader,
-        methodName: String,
-        parameterTypes: Array<Class<*>>,
-        callback: MethodHookCallback
-    ) {
-        val clazz = findClass(className, classLoader) ?: return
-        hookMethod(clazz, methodName, parameterTypes, callback)
     }
 
     abstract class MethodHookCallback {
