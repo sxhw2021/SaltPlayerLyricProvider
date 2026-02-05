@@ -29,7 +29,10 @@ jobs:
           accept-android-sdk-licenses: true
 
       - name: Accept SDK licenses
-        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        run: |
+          mkdir -p $ANDROID_HOME/licenses
+          echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
+          echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
@@ -37,11 +40,11 @@ jobs:
           gradle-version: 8.2
 
       - name: Build with Gradle
-        run: chmod +x gradlew && ./gradlew build
+        run: gradle build
 
       - name: Build release APK
         if: github.event_name == 'release'
-        run: chmod +x gradlew && ./gradlew assembleRelease
+        run: gradle assembleRelease
         env:
           KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -82,4 +85,4 @@ jobs:
           gradle-version: 8.2
 
       - name: Run tests
-        run: chmod +x gradlew && ./gradlew test
+        run: gradle test
