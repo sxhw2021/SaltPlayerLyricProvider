@@ -3,11 +3,10 @@ package com.saltplayer.lyric.provider.hook
 import android.os.Handler
 import android.os.Looper
 import com.saltplayer.lyric.provider.bridge.LyricBridgeManager
+import com.saltplayer.lyric.provider.bridge.LyricParser
 import com.saltplayer.lyric.provider.model.LyricInfo
 import com.saltplayer.lyric.provider.model.MusicInfo
 import com.saltplayer.lyric.provider.model.PlaybackState
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedHelpers
 import java.lang.ref.WeakReference
 
 object SaltPlayerHooker {
@@ -36,17 +35,21 @@ object SaltPlayerHooker {
 
     fun hookMusicService() {
         try {
-            val musicServiceClass = XposedHelpers.findClassIfExists(
+            val classLoader = Thread.currentThread().contextClassLoader
+            val musicServiceClass = XposedBridge.findClass(
                 "com.salt.music.service.MusicService",
-                null
+                classLoader
             )
 
             if (musicServiceClass != null) {
-                XposedHelpers.findAndHookMethod(
+                XposedBridge.hookConstructor(
                     musicServiceClass,
-                    "onCreate",
-                    object : XC_MethodHook() {
-                        override fun afterHookedMethod(param: MethodHookParam) {
+                    arrayOf<Class<*>>(),
+                    object : XposedBridge.MethodHookCallback() {
+                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                        }
+
+                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
                             musicServiceReference = WeakReference(param.thisObject)
                             hookPlaybackMethods(param.thisObject)
                             hookLyricMethods(param.thisObject)
@@ -59,20 +62,26 @@ object SaltPlayerHooker {
         }
     }
 
-    private fun hookPlaybackMethods(service: Any) {
+    private fun hookPlaybackMethods(service: Any?) {
+        if (service == null) return
+
         try {
-            val playMethod = XposedHelpers.findMethodExactIfExists(
-                service::class.java,
+            val serviceClass = service.javaClass
+            val playMethod = XposedBridge.findMethodExactIfExists(
+                serviceClass,
                 "play",
                 Any::class.java
             )
             if (playMethod != null) {
-                XposedHelpers.findAndHookMethod(
-                    service::class.java,
+                XposedBridge.hookMethod(
+                    service,
                     "play",
-                    Any::class.java,
-                    object : XC_MethodHook() {
-                        override fun afterHookedMethod(param: MethodHookParam) {
+                    arrayOf<Class<*>>(Any::class.java),
+                    object : XposedBridge.MethodHookCallback() {
+                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                        }
+
+                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
                             isPlaying = true
                             handler.removeCallbacks(progressRunnable)
                             handler.post(progressRunnable)
@@ -85,16 +94,20 @@ object SaltPlayerHooker {
         }
 
         try {
-            val pauseMethod = XposedHelpers.findMethodExactIfExists(
-                service::class.java,
+            val pauseMethod = XposedBridge.findMethodExactIfExists(
+                service.javaClass,
                 "pause"
             )
             if (pauseMethod != null) {
-                XposedHelpers.findAndHookMethod(
-                    service::class.java,
+                XposedBridge.hookMethod(
+                    service,
                     "pause",
-                    object : XC_MethodHook() {
-                        override fun afterHookedMethod(param: MethodHookParam) {
+                    arrayOf<Class<*>>(),
+                    object : XposedBridge.MethodHookCallback() {
+                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                        }
+
+                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
                             isPlaying = false
                             handler.removeCallbacks(progressRunnable)
                         }
@@ -106,16 +119,20 @@ object SaltPlayerHooker {
         }
 
         try {
-            val resumeMethod = XposedHelpers.findMethodExactIfExists(
-                service::class.java,
+            val resumeMethod = XposedBridge.findMethodExactIfExists(
+                service.javaClass,
                 "resume"
             )
             if (resumeMethod != null) {
-                XposedHelpers.findAndHookMethod(
-                    service::class.java,
+                XposedBridge.hookMethod(
+                    service,
                     "resume",
-                    object : XC_MethodHook() {
-                        override fun afterHookedMethod(param: MethodHookParam) {
+                    arrayOf<Class<*>>(),
+                    object : XposedBridge.MethodHookCallback() {
+                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                        }
+
+                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
                             isPlaying = true
                             handler.removeCallbacks(progressRunnable)
                             handler.post(progressRunnable)
@@ -128,16 +145,20 @@ object SaltPlayerHooker {
         }
 
         try {
-            val stopMethod = XposedHelpers.findMethodExactIfExists(
-                service::class.java,
+            val stopMethod = XposedBridge.findMethodExactIfExists(
+                service.javaClass,
                 "stop"
             )
             if (stopMethod != null) {
-                XposedHelpers.findAndHookMethod(
-                    service::class.java,
+                XposedBridge.hookMethod(
+                    service,
                     "stop",
-                    object : XC_MethodHook() {
-                        override fun afterHookedMethod(param: MethodHookParam) {
+                    arrayOf<Class<*>>(),
+                    object : XposedBridge.MethodHookCallback() {
+                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                        }
+
+                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
                             isPlaying = false
                             handler.removeCallbacks(progressRunnable)
                         }
@@ -149,21 +170,26 @@ object SaltPlayerHooker {
         }
     }
 
-    private fun hookLyricMethods(service: Any) {
+    private fun hookLyricMethods(service: Any?) {
+        if (service == null) return
+
         try {
-            val setLyricMethod = XposedHelpers.findMethodExactIfExists(
-                service::class.java,
+            val setLyricMethod = XposedBridge.findMethodExactIfExists(
+                service.javaClass,
                 "setLyric",
                 String::class.java
             )
             if (setLyricMethod != null) {
-                XposedHelpers.findAndHookMethod(
-                    service::class.java,
+                XposedBridge.hookMethod(
+                    service,
                     "setLyric",
-                    String::class.java,
-                    object : XC_MethodHook() {
-                        override fun afterHookedMethod(param: MethodHookParam) {
-                            val lyricContent = param.args[0] as? String
+                    arrayOf<Class<*>>(String::class.java),
+                    object : XposedBridge.MethodHookCallback() {
+                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                        }
+
+                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
+                            val lyricContent = param.args.getOrNull(0) as? String
                             if (lyricContent != null) {
                                 parseAndNotifyLyric(lyricContent)
                             }
@@ -176,19 +202,22 @@ object SaltPlayerHooker {
         }
 
         try {
-            val onLyricChangedMethod = XposedHelpers.findMethodExactIfExists(
-                service::class.java,
+            val onLyricChangedMethod = XposedBridge.findMethodExactIfExists(
+                service.javaClass,
                 "onLyricChanged",
                 Any::class.java
             )
             if (onLyricChangedMethod != null) {
-                XposedHelpers.findAndHookMethod(
-                    service::class.java,
+                XposedBridge.hookMethod(
+                    service,
                     "onLyricChanged",
-                    Any::class.java,
-                    object : XC_MethodHook() {
-                        override fun afterHookedMethod(param: MethodHookParam) {
-                            val lyricContent = param.args[0] as? String
+                    arrayOf<Class<*>>(Any::class.java),
+                    object : XposedBridge.MethodHookCallback() {
+                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                        }
+
+                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
+                            val lyricContent = param.args.getOrNull(0) as? String
                             if (lyricContent != null) {
                                 parseAndNotifyLyric(lyricContent)
                             }
@@ -227,9 +256,9 @@ object SaltPlayerHooker {
     private fun parseAndNotifyLyric(content: String) {
         try {
             currentLyricInfo = if (content.startsWith("[")) {
-                com.saltplayer.lyric.provider.bridge.LyricParser.parseLrc(content)
+                LyricParser.parseLrc(content)
             } else {
-                com.saltplayer.lyric.provider.bridge.LyricParser.parseQrc(content)
+                LyricParser.parseQrc(content)
             }
             currentLyricInfo?.let { LyricBridgeManager.notifyLyricInfo(it) }
         } catch (e: Exception) {
@@ -243,7 +272,7 @@ object SaltPlayerHooker {
                 isPlaying = isPlaying,
                 position = currentPosition,
                 duration = currentDuration,
-                musicInfo = currentMusicInfo
+                musicInfo = currentMusicInfo!!
             )
             LyricBridgeManager.notifyPlaybackState(playbackState)
         }

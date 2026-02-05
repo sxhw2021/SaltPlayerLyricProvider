@@ -4,62 +4,103 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.os.Bundle
 import android.os.IBinder
 import com.saltplayer.lyric.provider.bridge.LyricBridge
 import com.saltplayer.lyric.provider.bridge.LyricBridgeManager
+import com.saltplayer.lyric.provider.hook.XposedBridge
 import com.saltplayer.lyric.provider.model.LyricInfo
 import com.saltplayer.lyric.provider.model.MusicInfo
 import com.saltplayer.lyric.provider.model.PlaybackState
 import com.saltplayer.lyric.provider.hook.SaltPlayerHooker
-import de.robv.android.xposed.IXposedHookLoadPackage
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import java.lang.reflect.Method
 
-class SaltPlayerModule : IXposedHookLoadPackage {
+class SaltPlayerModule {
 
     companion object {
         private const val TAG = "SaltPlayerLyricProvider"
         private const val SALT_PLAYER_PACKAGE = "com.salt.music"
     }
 
-    override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
-        if (lpparam.packageName != SALT_PLAYER_PACKAGE) {
-            return
-        }
-
+    fun handleLoadPackage(lpparam: Any) {
         try {
-            hookSaltPlayer(lpparam)
+            val classLoader = getClassLoader(lpparam)
+            if (!XposedBridge.initialize(classLoader)) {
+                return
+            }
+
+            val packageName = getPackageName(lpparam)
+            if (packageName != SALT_PLAYER_PACKAGE) {
+                return
+            }
+
+            hookSaltPlayer(lpparam, classLoader)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    private fun hookSaltPlayer(lpparam: XC_LoadPackage.LoadPackageParam) {
-        XposedHelpers.findAndHookMethod(
-            "android.app.Application",
-            lpparam.classLoader,
-            "onCreate",
-            object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    SaltPlayerHooker.hookMusicService()
-                    registerLyricBridge()
+    private fun getClassLoader(lpparam: Any): ClassLoader {
+        return try {
+            val method = lpparam.javaClass.getMethod("getClassLoader")
+            method.invoke(lpparam) as ClassLoader
+        } catch (e: Exception) {
+            Thread.currentThread().contextClassLoader
+        }
+    }
+
+    private fun getPackageName(lpparam: Any): String {
+        return try {
+            val field = lpparam.javaClass.getField("packageName")
+            field.get(lpparam) as String
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    private fun getClassLoaderFromAny(obj: Any): ClassLoader {
+        return try {
+            obj.javaClass.getMethod("getClassLoader").invoke(obj) as ClassLoader
+        } catch (e: Exception) {
+            Thread.currentThread().contextClassLoader
+        }
+    }
+
+    private fun hookSaltPlayer(lpparam: Any, classLoader: ClassLoader) {
+        try {
+            XposedBridge.hookMethod(
+                "android.app.Application",
+                getClassLoaderFromAny(lpparam),
+                arrayOf<Class<*>>(),
+                object : XposedBridge.MethodHookCallback() {
+                    override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                    }
+
+                    override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
+                        SaltPlayerHooker.hookMusicService()
+                        registerLyricBridge()
+                    }
                 }
-            }
-        )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         try {
-            val mainActivityClass = XposedHelpers.findClassIfExists(
+            val mainActivityClass = XposedBridge.findClass(
                 "com.salt.music.ui.MainActivity",
-                lpparam.classLoader
+                classLoader
             )
             if (mainActivityClass != null) {
-                XposedHelpers.findAndHookMethod(
+                XposedBridge.hookMethod(
                     mainActivityClass,
                     "onCreate",
-                    android.os.Bundle::class.java,
-                    object : XC_MethodHook() {
-                        override fun afterHookedMethod(param: MethodHookParam) {
+                    arrayOf<Class<*>>(Bundle::class.java),
+                    object : XposedBridge.MethodHookCallback() {
+                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                        }
+
+                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
                             SaltPlayerHooker.hookMusicService()
                         }
                     }
@@ -70,15 +111,19 @@ class SaltPlayerModule : IXposedHookLoadPackage {
         }
 
         try {
-            val musicServiceClass = XposedHelpers.findClassIfExists(
+            val musicServiceClass = XposedBridge.findClass(
                 "com.salt.music.service.MusicService",
-                lpparam.classLoader
+                classLoader
             )
             if (musicServiceClass != null) {
-                XposedHelpers.findAndHookConstructor(
+                XposedBridge.hookConstructor(
                     musicServiceClass,
-                    object : XC_MethodHook() {
-                        override fun afterHookedMethod(param: MethodHookParam) {
+                    arrayOf<Class<*>>(),
+                    object : XposedBridge.MethodHookCallback() {
+                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                        }
+
+                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
                             SaltPlayerHooker.hookPlaybackMethods(param.thisObject)
                             SaltPlayerHooker.hookLyricMethods(param.thisObject)
                         }
@@ -89,24 +134,27 @@ class SaltPlayerModule : IXposedHookLoadPackage {
             e.printStackTrace()
         }
 
-        hookMediaSession(lpparam)
-        hookNotification(lpparam)
+        hookMediaSession(lpparam, classLoader)
+        hookNotification(lpparam, classLoader)
     }
 
-    private fun hookMediaSession(lpparam: XC_LoadPackage.LoadPackageParam) {
+    private fun hookMediaSession(lpparam: Any, classLoader: ClassLoader) {
         try {
-            val mediaSessionClass = XposedHelpers.findClassIfExists(
+            val mediaSessionClass = XposedBridge.findClass(
                 "android.media.session.MediaSession",
-                lpparam.classLoader
+                classLoader
             )
             if (mediaSessionClass != null) {
-                XposedHelpers.findAndHookMethod(
+                XposedBridge.hookMethod(
                     mediaSessionClass,
                     "setCallback",
-                    android.media.session.MediaSession.Callback::class.java,
-                    object : XC_MethodHook() {
-                        override fun afterHookedMethod(param: MethodHookParam) {
-                            val callback = param.args[0] as? android.media.session.MediaSession.Callback
+                    arrayOf<Class<*>>(android.media.session.MediaSession.Callback::class.java),
+                    object : XposedBridge.MethodHookCallback() {
+                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                        }
+
+                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
+                            val callback = param.args.getOrNull(0) as? android.media.session.MediaSession.Callback
                             hookMediaSessionCallback(callback)
                         }
                     }
@@ -121,23 +169,28 @@ class SaltPlayerModule : IXposedHookLoadPackage {
         if (callback == null) return
     }
 
-    private fun hookNotification(lpparam: XC_LoadPackage.LoadPackageParam) {
+    private fun hookNotification(lpparam: Any, classLoader: ClassLoader) {
         try {
-            val notificationClass = XposedHelpers.findClassIfExists(
+            val notificationClass = XposedBridge.findClass(
                 "android.app.Notification",
-                lpparam.classLoader
+                classLoader
             )
             if (notificationClass != null) {
-                XposedHelpers.findAndHookMethod(
+                XposedBridge.hookMethod(
                     notificationClass,
                     "setLatestEventInfo",
-                    Context::class.java,
-                    CharSequence::class.java,
-                    CharSequence::class.java,
-                    android.app.PendingIntent::class.java,
-                    android.app.PendingIntent::class.java,
-                    object : XC_MethodHook() {
-                        override fun afterHookedMethod(param: MethodHookParam) {
+                    arrayOf<Class<*>>(
+                        Context::class.java,
+                        CharSequence::class.java,
+                        CharSequence::class.java,
+                        android.app.PendingIntent::class.java,
+                        android.app.PendingIntent::class.java
+                    ),
+                    object : XposedBridge.MethodHookCallback() {
+                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                        }
+
+                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
                             val notification = param.thisObject as? android.app.Notification
                             extractMediaInfoFromNotification(notification)
                         }
