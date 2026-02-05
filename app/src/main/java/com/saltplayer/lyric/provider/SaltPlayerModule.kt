@@ -68,21 +68,26 @@ class SaltPlayerModule {
 
     private fun hookSaltPlayer(lpparam: Any, classLoader: ClassLoader) {
         try {
-            XposedBridge.hookMethod(
+            val appClass = XposedBridge.findClass(
                 "android.app.Application",
-                getClassLoaderFromAny(lpparam),
-                "onCreate",
-                arrayOf<Class<*>>(),
-                object : XposedBridge.MethodHookCallback() {
-                    override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
-                    }
-
-                    override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
-                        SaltPlayerHooker.hookMusicService()
-                        registerLyricBridge()
-                    }
-                }
+                getClassLoaderFromAny(lpparam)
             )
+            if (appClass != null) {
+                XposedBridge.hookMethod(
+                    appClass,
+                    "onCreate",
+                    arrayOf<Class<*>>(),
+                    object : XposedBridge.MethodHookCallback() {
+                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
+                        }
+
+                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
+                            SaltPlayerHooker.hookMusicService()
+                            registerLyricBridge()
+                        }
+                    }
+                )
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }

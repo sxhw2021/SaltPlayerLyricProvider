@@ -88,6 +88,7 @@ object XposedBridge {
         parameterTypes: Array<Class<*>>
     ): Method? {
         return try {
+            @Suppress("UNCHECKED_CAST")
             findMethodMethod?.invoke(
                 null,
                 clazz,
@@ -104,7 +105,7 @@ object XposedBridge {
         methodName: String,
         vararg parameterTypes: Class<*>
     ): Method? {
-        return findMethodExact(clazz, methodName, parameterTypes)
+        return findMethodExact(clazz, methodName, parameterTypes as Array<Class<*>>)
     }
 
     fun findConstructorExact(
@@ -112,6 +113,7 @@ object XposedBridge {
         parameterTypes: Array<Class<*>>
     ): Constructor<*>? {
         return try {
+            @Suppress("UNCHECKED_CAST")
             findConstructorMethod?.invoke(
                 null,
                 clazz,
@@ -126,7 +128,7 @@ object XposedBridge {
         clazz: Class<*>,
         vararg parameterTypes: Class<*>
     ): Constructor<*>? {
-        return findConstructorExact(clazz, parameterTypes)
+        return findConstructorExact(clazz, parameterTypes as Array<Class<*>>)
     }
 
     fun hookMethod(
@@ -175,6 +177,17 @@ object XposedBridge {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    fun hookMethod(
+        className: String,
+        classLoader: ClassLoader,
+        methodName: String,
+        parameterTypes: Array<Class<*>>,
+        callback: MethodHookCallback
+    ) {
+        val clazz = findClass(className, classLoader) ?: return
+        hookMethod(clazz, methodName, parameterTypes, callback)
     }
 
     abstract class MethodHookCallback {
