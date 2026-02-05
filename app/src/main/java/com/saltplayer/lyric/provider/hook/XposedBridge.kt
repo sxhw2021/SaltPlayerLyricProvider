@@ -4,7 +4,6 @@ import java.lang.reflect.Method
 
 object XposedBridge {
     private var xposedHelpersClass: Class<*>? = null
-    private var xposedBridgeClass: Class<*>? = null
     private var methodHookClass: Class<*>? = null
 
     private var findClassMethod: Method? = null
@@ -15,63 +14,45 @@ object XposedBridge {
 
     private var isInitialized = false
 
-    @Suppress("UNCHECKED_CAST")
-    private fun <T> Array<T>.toClassArray(): Array<Class<T>> {
-        return Array(this.size) { this[it]::class.java }
-    }
-
     fun initialize(classLoader: ClassLoader): Boolean {
         if (isInitialized) return true
 
         try {
             xposedHelpersClass = classLoader.loadClass("de.robv.android.xposed.XposedHelpers")
-            xposedBridgeClass = classLoader.loadClass("de.robv.android.xposed.XposedBridge")
             methodHookClass = classLoader.loadClass("de.robv.android.xposed.callbacks.XC_MethodHook")
 
-            findClassMethod = xposedHelpersClass?.getMethod(
+            findClassMethod = xposedHelpersClass!!.getMethod(
                 "findClassIfExists",
                 String::class.java,
                 ClassLoader::class.java
             )
 
-            val paramTypes1 = arrayOf<Class<*>>(
-                Class::class.java,
-                String::class.java,
-                Array<Class<*>>::class.java
-            )
-            findMethodMethod = xposedHelpersClass?.getMethod(
+            findMethodMethod = xposedHelpersClass!!.getMethod(
                 "findMethodExactIfExists",
-                *paramTypes1
+                Class::class.java,
+                String::class.java,
+                Array<Class<*>>::class.java
             )
 
-            val paramTypes2 = arrayOf<Class<*>>(
+            findConstructorMethod = xposedHelpersClass!!.getMethod(
+                "findConstructorExactIfExists",
                 Class::class.java,
                 Array<Class<*>>::class.java
             )
-            findConstructorMethod = xposedHelpersClass?.getMethod(
-                "findConstructorExactIfExists",
-                *paramTypes2
-            )
 
-            val paramTypes3 = arrayOf<Class<*>>(
+            hookMethodMethod = xposedHelpersClass!!.getMethod(
+                "findAndHookMethod",
                 Class::class.java,
                 String::class.java,
                 Array<Any>::class.java,
                 methodHookClass
             )
-            hookMethodMethod = xposedHelpersClass?.getMethod(
-                "findAndHookMethod",
-                *paramTypes3
-            )
 
-            val paramTypes4 = arrayOf<Class<*>>(
+            hookConstructorMethod = xposedHelpersClass!!.getMethod(
+                "findAndHookConstructor",
                 Class::class.java,
                 Array<Any>::class.java,
                 methodHookClass
-            )
-            hookConstructorMethod = xposedHelpersClass?.getMethod(
-                "findAndHookConstructor",
-                *paramTypes4
             )
 
             isInitialized = true
@@ -90,41 +71,29 @@ object XposedBridge {
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
     fun findMethodExact(
         clazz: Class<*>,
         methodName: String,
         parameterTypes: Array<Class<*>>
     ): Method? {
         return try {
-            findMethodMethod?.invoke(
-                null,
-                clazz,
-                methodName,
-                parameterTypes
-            ) as? Method
+            findMethodMethod?.invoke(null, clazz, methodName, parameterTypes) as? Method
         } catch (e: Exception) {
             null
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
     fun findConstructorExact(
         clazz: Class<*>,
         parameterTypes: Array<Class<*>>
     ): java.lang.reflect.Constructor<*>? {
         return try {
-            findConstructorMethod?.invoke(
-                null,
-                clazz,
-                parameterTypes
-            ) as? java.lang.reflect.Constructor<*>
+            findConstructorMethod?.invoke(null, clazz, parameterTypes) as? java.lang.reflect.Constructor<*>
         } catch (e: Exception) {
             null
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
     fun hookMethod(
         clazz: Class<*>,
         methodName: String,
@@ -132,43 +101,44 @@ object XposedBridge {
         callback: MethodHookCallback
     ) {
         try {
-            val hookerClass = methodHookClass?.classLoader?.loadClass("de.robv.android.xposed.XposedHelpers\$MethodHooker")
-            val hookerConstructor = hookerClass?.getDeclaredConstructor(methodHookClass)
-            val hooker = hookerConstructor?.newInstance(callback)
+            val hookerClass = methodHookClass!!.classLoader.loadClass("de.robv.android.xposed.XposedHelpers\$MethodHooker")
+            val hookerConstructor = hookerClass.getDeclaredConstructor(methodHookClass)
+            val hooker = hookerConstructor.newInstance(callback)
 
-            val args = arrayOfNulls<Any>(parameterTypes.size + 3)
+            val argsSize = parameterTypes.size + 3
+            val args = java.lang.reflect.Array.newInstance(Any::class.java, argsSize) as Array<Any?>
             args[0] = clazz
             args[1] = methodName
             for (i in parameterTypes.indices) {
                 args[i + 2] = parameterTypes[i]
             }
-            args[args.size - 1] = hooker
+            args[argsSize - 1] = hooker
 
-            hookMethodMethod?.invoke(null, *args)
+            hookMethodMethod!!.invoke(null, *args)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
     fun hookConstructor(
         clazz: Class<*>,
         parameterTypes: Array<Class<*>>,
         callback: MethodHookCallback
     ) {
         try {
-            val hookerClass = methodHookClass?.classLoader?.loadClass("de.robv.android.xposed.XposedHelpers\$MethodHooker")
-            val hookerConstructor = hookerClass?.getDeclaredConstructor(methodHookClass)
-            val hooker = hookerConstructor?.newInstance(callback)
+            val hookerClass = methodHookClass!!.classLoader.loadClass("de.robv.android.xposed.XposedHelpers\$MethodHooker")
+            val hookerConstructor = hookerClass.getDeclaredConstructor(methodHookClass)
+            val hooker = hookerConstructor.newInstance(callback)
 
-            val args = arrayOfNulls<Any>(parameterTypes.size + 2)
+            val argsSize = parameterTypes.size + 2
+            val args = java.lang.reflect.Array.newInstance(Any::class.java, argsSize) as Array<Any?>
             args[0] = clazz
             for (i in parameterTypes.indices) {
                 args[i + 1] = parameterTypes[i]
             }
-            args[args.size - 1] = hooker
+            args[argsSize - 1] = hooker
 
-            hookConstructorMethod?.invoke(null, *args)
+            hookConstructorMethod!!.invoke(null, *args)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -185,52 +155,21 @@ object XposedBridge {
     class MethodHookParam(
         val thisObject: Any?,
         val args: Array<Any?>,
-        private val method: Method?,
         private val hooker: Any?
     ) {
         private var resultValue: Any? = null
         private var thrownValue: Throwable? = null
 
         var result: Any?
-            get() = try {
-                resultField?.get(hooker)
-            } catch (e: Exception) {
-                resultValue
-            }
+            get() = resultValue
             set(value) {
                 resultValue = value
-                try {
-                    resultField?.set(hooker, value)
-                } catch (e: Exception) {
-                }
             }
 
         var throwable: Throwable?
             get() = thrownValue
             set(value) {
                 thrownValue = value
-                try {
-                    throwableField?.set(hooker, value)
-                } catch (e: Exception) {
-                }
-            }
-
-        private val resultField: java.lang.reflect.Field?
-            get() = try {
-                val field = hooker?.javaClass?.getDeclaredField("\$result")
-                field?.isAccessible = true
-                field
-            } catch (e: Exception) {
-                null
-            }
-
-        private val throwableField: java.lang.reflect.Field?
-            get() = try {
-                val field = hooker?.javaClass?.getDeclaredField("\$throwable")
-                field?.isAccessible = true
-                field
-            } catch (e: Exception) {
-                null
             }
     }
 }
