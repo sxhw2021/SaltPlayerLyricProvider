@@ -66,7 +66,7 @@ dependencies {
     compileOnly("com.google.android.material:material:1.11.0")
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib:1.9.20")
 
-    compileOnly("de.robv.android.xposed:api:82")
+    compileOnly("org.lsposed.lspd:api:1.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.7.0")
