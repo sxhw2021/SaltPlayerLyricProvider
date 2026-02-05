@@ -39,12 +39,15 @@ jobs:
         with:
           gradle-version: 8.2
 
+      - name: Generate Gradle Wrapper
+        run: gradle wrapper --gradle-version 8.2
+
       - name: Build with Gradle
-        run: gradle build
+        run: ./gradlew build --no-daemon
 
       - name: Build release APK
         if: github.event_name == 'release'
-        run: gradle assembleRelease
+        run: ./gradlew assembleRelease --no-daemon
         env:
           KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -84,5 +87,8 @@ jobs:
         with:
           gradle-version: 8.2
 
+      - name: Generate Gradle Wrapper
+        run: gradle wrapper --gradle-version 8.2
+
       - name: Run tests
-        run: gradle test
+        run: ./gradlew test --no-daemon
