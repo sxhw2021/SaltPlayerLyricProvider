@@ -12,7 +12,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url = uri("https://jitpack.io") }
-        maven { url = uri("https://raw.githubusercontent.com/LSPosed/LSPosed/maven-repo/releases") }
+        maven { url = uri("https://maven.lsposed.org") }
     }
 }
 
