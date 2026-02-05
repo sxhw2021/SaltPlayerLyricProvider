@@ -26,12 +26,10 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           api-level: 34
-          accept-licenses: true
+          accept-android-sdk-licenses: true
 
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 8.2
+      - name: Accept SDK licenses
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
@@ -39,11 +37,11 @@ jobs:
           gradle-version: 8.2
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: chmod +x gradlew && ./gradlew build
 
       - name: Build release APK
         if: github.event_name == 'release'
-        run: ./gradlew assembleRelease
+        run: chmod +x gradlew && ./gradlew assembleRelease
         env:
           KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -84,4 +82,4 @@ jobs:
           gradle-version: 8.2
 
       - name: Run tests
-        run: ./gradlew test
+        run: chmod +x gradlew && ./gradlew test
