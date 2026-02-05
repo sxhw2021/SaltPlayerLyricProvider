@@ -66,15 +66,15 @@ object SaltPlayerHooker {
         if (service == null) return
 
         try {
-            val serviceClass = service.javaClass
-            val playMethod = XposedBridge.findMethodExactIfExists(
+            val serviceClass = service.javaClass as Class<*>
+            val playMethod = XposedBridge.findMethodExact(
                 serviceClass,
                 "play",
-                Any::class.java
+                arrayOf<Class<*>>(Any::class.java)
             )
             if (playMethod != null) {
                 XposedBridge.hookMethod(
-                    service,
+                    serviceClass,
                     "play",
                     arrayOf<Class<*>>(Any::class.java),
                     object : XposedBridge.MethodHookCallback() {
@@ -94,13 +94,14 @@ object SaltPlayerHooker {
         }
 
         try {
-            val pauseMethod = XposedBridge.findMethodExactIfExists(
-                service.javaClass,
-                "pause"
+            val pauseMethod = XposedBridge.findMethodExact(
+                service.javaClass as Class<*>,
+                "pause",
+                arrayOf<Class<*>>()
             )
             if (pauseMethod != null) {
                 XposedBridge.hookMethod(
-                    service,
+                    service.javaClass as Class<*>,
                     "pause",
                     arrayOf<Class<*>>(),
                     object : XposedBridge.MethodHookCallback() {
@@ -119,13 +120,14 @@ object SaltPlayerHooker {
         }
 
         try {
-            val resumeMethod = XposedBridge.findMethodExactIfExists(
-                service.javaClass,
-                "resume"
+            val resumeMethod = XposedBridge.findMethodExact(
+                service.javaClass as Class<*>,
+                "resume",
+                arrayOf<Class<*>>()
             )
             if (resumeMethod != null) {
                 XposedBridge.hookMethod(
-                    service,
+                    service.javaClass as Class<*>,
                     "resume",
                     arrayOf<Class<*>>(),
                     object : XposedBridge.MethodHookCallback() {
@@ -145,13 +147,14 @@ object SaltPlayerHooker {
         }
 
         try {
-            val stopMethod = XposedBridge.findMethodExactIfExists(
-                service.javaClass,
-                "stop"
+            val stopMethod = XposedBridge.findMethodExact(
+                service.javaClass as Class<*>,
+                "stop",
+                arrayOf<Class<*>>()
             )
             if (stopMethod != null) {
                 XposedBridge.hookMethod(
-                    service,
+                    service.javaClass as Class<*>,
                     "stop",
                     arrayOf<Class<*>>(),
                     object : XposedBridge.MethodHookCallback() {
@@ -174,14 +177,14 @@ object SaltPlayerHooker {
         if (service == null) return
 
         try {
-            val setLyricMethod = XposedBridge.findMethodExactIfExists(
-                service.javaClass,
+            val setLyricMethod = XposedBridge.findMethodExact(
+                service.javaClass as Class<*>,
                 "setLyric",
-                String::class.java
+                arrayOf<Class<*>>(String::class.java)
             )
             if (setLyricMethod != null) {
                 XposedBridge.hookMethod(
-                    service,
+                    service.javaClass as Class<*>,
                     "setLyric",
                     arrayOf<Class<*>>(String::class.java),
                     object : XposedBridge.MethodHookCallback() {
@@ -202,14 +205,14 @@ object SaltPlayerHooker {
         }
 
         try {
-            val onLyricChangedMethod = XposedBridge.findMethodExactIfExists(
-                service.javaClass,
+            val onLyricChangedMethod = XposedBridge.findMethodExact(
+                service.javaClass as Class<*>,
                 "onLyricChanged",
-                Any::class.java
+                arrayOf<Class<*>>(Any::class.java)
             )
             if (onLyricChangedMethod != null) {
                 XposedBridge.hookMethod(
-                    service,
+                    service.javaClass as Class<*>,
                     "onLyricChanged",
                     arrayOf<Class<*>>(Any::class.java),
                     object : XposedBridge.MethodHookCallback() {
