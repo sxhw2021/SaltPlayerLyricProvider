@@ -30,7 +30,7 @@ object LyricParser {
             }
 
             val timeMatch = Regex("""\[(\d+):(\d+\.?\d*)]""").findAll(trimmedLine)
-            for (timeMatchResult in timeMatchResultIterator) {
+            for (timeMatchResult in timeMatch) {
                 val minutes = timeMatchResult.groupValues[1].toLongOrNull() ?: continue
                 val seconds = timeMatchResult.groupValues[2].toDoubleOrNull() ?: continue
                 val time = (minutes * 60 + seconds * 1000).toLong()

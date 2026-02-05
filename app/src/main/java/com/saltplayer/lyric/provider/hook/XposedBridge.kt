@@ -12,10 +12,8 @@ object XposedBridge {
     private var findMethodMethod: Method? = null
     private var findConstructorMethod: Method? = null
     private var hookMethodMethod: Method? = null
+    private var hookConstructorMethod: Method? = null
     private var invokeOriginalMethod: Method? = null
-
-    private var beforeHookedMethodField: java.lang.reflect.Field? = null
-    private var afterHookedMethodField: java.lang.reflect.Field? = null
 
     private var isInitialized = false
 
@@ -33,24 +31,33 @@ object XposedBridge {
                 ClassLoader::class.java
             )
 
+            val classArrayClass = Array<Class<*>>::class.java
             findMethodMethod = xposedHelpersClass?.getMethod(
                 "findMethodExactIfExists",
                 Class::class.java,
                 String::class.java,
-                Array<Class<*>>::class.java
+                classArrayClass
             )
 
             findConstructorMethod = xposedHelpersClass?.getMethod(
                 "findConstructorExactIfExists",
                 Class::class.java,
-                Array<Class<*>>::class.java
+                classArrayClass
             )
 
+            val anyArrayClass = Array<Any>::class.java
             hookMethodMethod = xposedHelpersClass?.getMethod(
                 "findAndHookMethod",
-                Any::class.java,
+                Class::class.java,
                 String::class.java,
-                Array<Any>::class.java,
+                anyArrayClass,
+                methodHookClass
+            )
+
+            hookConstructorMethod = xposedHelpersClass?.getMethod(
+                "findAndHookConstructor",
+                Class::class.java,
+                anyArrayClass,
                 methodHookClass
             )
 
@@ -58,20 +65,14 @@ object XposedBridge {
                 "invokeOriginalMethod",
                 Method::class.java,
                 Any::class.java,
-                Array<Any>::class.java
+                anyArrayClass
             )
 
-            beforeHookedMethodField = methodHookClass?.getDeclaredField("beforeHookedMethod")
-            beforeHookedMethodField?.isAccessible = true
-
-            afterHookedMethodField = methodHookClass?.getDeclaredField("afterHookedMethod")
-            afterHookedMethodField?.isAccessible = true
-
             isInitialized = true
-            true
+            return true
         } catch (e: Exception) {
             e.printStackTrace()
-            false
+            return false
         }
     }
 
@@ -116,7 +117,22 @@ object XposedBridge {
     }
 
     fun hookMethod(
-        clazz: Any,
+        className: String,
+        classLoader: ClassLoader,
+        methodName: String,
+        parameterTypes: Array<Class<*>>,
+        callback: MethodHookCallback
+    ) {
+        try {
+            val clazz = findClass(className, classLoader) ?: return
+            hookMethod(clazz, methodName, parameterTypes, callback)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun hookMethod(
+        clazz: Class<*>,
         methodName: String,
         parameterTypes: Array<Class<*>>,
         callback: MethodHookCallback
@@ -142,13 +158,6 @@ object XposedBridge {
             val hookerConstructor = hookerClass?.getDeclaredConstructor(methodHookClass)
             val hooker = hookerConstructor?.newInstance(callback)
 
-            val hookConstructorMethod = xposedHelpersClass?.getMethod(
-                "findAndHookConstructor",
-                Class::class.java,
-                Array<Class<*>>::class.java,
-                methodHookClass
-            )
-
             hookConstructorMethod?.invoke(null, clazz, parameterTypes, hooker)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -166,14 +175,15 @@ object XposedBridge {
     class MethodHookParam(
         val thisObject: Any?,
         val args: Array<Any?>,
-        private val methodField: java.lang.reflect.Field?,
+        private val method: Method?,
         private val hooker: Any?
     ) {
         private var resultValue: Any? = null
-        private var thrown: Throwable? = null
+        private var thrownValue: Throwable? = null
+
         var result: Any?
             get() = try {
-                resultField?.get(hooker) ?: resultValue
+                resultField?.get(hooker)
             } catch (e: Exception) {
                 resultValue
             }
@@ -186,9 +196,9 @@ object XposedBridge {
             }
 
         var throwable: Throwable?
-            get() = thrown
+            get() = thrownValue
             set(value) {
-                thrown = value
+                thrownValue = value
                 try {
                     throwableField?.set(hooker, value)
                 } catch (e: Exception) {
@@ -197,18 +207,18 @@ object XposedBridge {
 
         private val resultField: java.lang.reflect.Field?
             get() = try {
-                val resultFieldClass = hooker?.javaClass?.declaredField("\$result")
-                resultFieldClass?.isAccessible = true
-                resultFieldClass
+                val field = hooker?.javaClass?.getDeclaredField("\$result")
+                field?.isAccessible = true
+                field
             } catch (e: Exception) {
                 null
             }
 
         private val throwableField: java.lang.reflect.Field?
             get() = try {
-                val throwableFieldClass = hooker?.javaClass?.declaredField("\$throwable")
-                throwableFieldClass?.isAccessible = true
-                throwableFieldClass
+                val field = hooker?.javaClass?.getDeclaredField("\$throwable")
+                field?.isAccessible = true
+                field
             } catch (e: Exception) {
                 null
             }

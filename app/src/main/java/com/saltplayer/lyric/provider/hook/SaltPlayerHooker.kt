@@ -62,7 +62,7 @@ object SaltPlayerHooker {
         }
     }
 
-    private fun hookPlaybackMethods(service: Any?) {
+    fun hookPlaybackMethods(service: Any?) {
         if (service == null) return
 
         try {
@@ -170,7 +170,7 @@ object SaltPlayerHooker {
         }
     }
 
-    private fun hookLyricMethods(service: Any?) {
+    fun hookLyricMethods(service: Any?) {
         if (service == null) return
 
         try {

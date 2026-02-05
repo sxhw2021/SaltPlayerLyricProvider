@@ -71,6 +71,7 @@ class SaltPlayerModule {
             XposedBridge.hookMethod(
                 "android.app.Application",
                 getClassLoaderFromAny(lpparam),
+                "onCreate",
                 arrayOf<Class<*>>(),
                 object : XposedBridge.MethodHookCallback() {
                     override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
