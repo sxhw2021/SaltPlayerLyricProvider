@@ -1,7 +1,7 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -46,15 +46,14 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.11.0")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.20")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
 
-    compileOnly("de.robv.android.xposed:api:82")
+    compileOnly(libs.xposed.api)
 
-    ksp("com.highcapable.yukihookapi:ksp-xposed:1.3.1")
-    implementation("com.highcapable.yukihookapi:api:1.3.1")
+    ksp(libs.yukihookapi.ksp.xposed)
+    implementation(libs.yukihookapi.api)
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.7.0")
