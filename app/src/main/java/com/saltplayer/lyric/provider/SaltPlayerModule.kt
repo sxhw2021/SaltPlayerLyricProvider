@@ -1,6 +1,5 @@
 package com.saltplayer.lyric.provider
 
-import android.content.Context
 import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit

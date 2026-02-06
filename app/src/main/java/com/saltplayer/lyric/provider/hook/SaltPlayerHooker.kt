@@ -3,7 +3,6 @@ package com.saltplayer.lyric.provider.hook
 import android.os.Handler
 import android.os.Looper
 import com.highcapable.yukihookapi.hook.entity.YukiHookBill
-import com.highcapable.yukihookapi.hook.entity.YukiModuleHook
 import com.saltplayer.lyric.provider.bridge.LyricBridgeManager
 import com.saltplayer.lyric.provider.bridge.LyricParser
 import com.saltplayer.lyric.provider.model.LyricInfo
@@ -136,12 +135,6 @@ object SaltPlayerHooker {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-    }
-
-    private fun hookPlaybackMethods(service: Any?) {
-    }
-
-    private fun hookLyricMethods(service: Any?) {
     }
 
     private fun parseAndNotifyLyric(content: String) {

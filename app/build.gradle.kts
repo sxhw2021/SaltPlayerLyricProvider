@@ -46,14 +46,14 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.11.0")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
 
-    compileOnly("de.robv.android.xposed:api:82")
+    compileOnly(libs.xposed.api)
 
-    implementation("com.highcapable.yukihookapi:api:1.3.1")
-    ksp("com.highcapable.yukihookapi:ksp-xposed:1.3.1")
+    implementation(libs.yukihookapi.api)
+    ksp(libs.yukihookapi.ksp.xposed)
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.7.0")
