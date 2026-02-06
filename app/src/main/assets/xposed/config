@@ -1,5 +1,0 @@
-install=1
-name=SaltPlayerLyricProvider
-version=1.0.0
-description=Provides lyric functionality for SaltPlayer
-api=10000
