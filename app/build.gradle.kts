@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -13,16 +14,11 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
-
-        ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
-        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
-            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -30,7 +26,6 @@ android {
         }
         debug {
             isMinifyEnabled = false
-            isDebuggable = true
         }
     }
 
@@ -43,16 +38,6 @@ android {
         jvmTarget = "17"
     }
 
-    buildFeatures {
-        viewBinding = true
-    }
-
-    lint {
-        warningsAsErrors = false
-        abortOnError = false
-        checkDependencies = true
-    }
-
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -61,12 +46,15 @@ android {
 }
 
 dependencies {
-    compileOnly("androidx.core:core-ktx:1.12.0")
-    compileOnly("androidx.appcompat:appcompat:1.6.1")
-    compileOnly("com.google.android.material:material:1.11.0")
-    compileOnly("org.jetbrains.kotlin:kotlin-stdlib:1.9.20")
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.11.0")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.20")
 
-    implementation("com.github.rovo89:XposedBridge:v80")
+    compileOnly("de.robv.android.xposed:api:82")
+
+    ksp("com.highcapable.yukihookapi:ksp-xposed:1.3.1")
+    implementation("com.highcapable.yukihookapi:api:1.3.1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.7.0")

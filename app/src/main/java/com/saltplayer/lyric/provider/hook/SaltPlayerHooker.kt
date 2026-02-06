@@ -2,6 +2,8 @@ package com.saltplayer.lyric.provider.hook
 
 import android.os.Handler
 import android.os.Looper
+import com.highcapable.yukihookapi.hook.entity.YukiHookBill
+import com.highcapable.yukihookapi.hook.entity.YukiModuleHook
 import com.saltplayer.lyric.provider.bridge.LyricBridgeManager
 import com.saltplayer.lyric.provider.bridge.LyricParser
 import com.saltplayer.lyric.provider.model.LyricInfo
@@ -33,227 +35,113 @@ object SaltPlayerHooker {
         }
     }
 
-    fun hookMusicService() {
+    fun hook(YukiHookBill: YukiHookBill) {
         try {
-            val classLoader = Thread.currentThread().contextClassLoader
-            val musicServiceClass = XposedBridge.findClass(
-                "com.salt.music.service.MusicService",
-                classLoader
-            )
-
-            if (musicServiceClass != null) {
-                XposedBridge.hookConstructor(
-                    musicServiceClass,
-                    arrayOf<Class<*>>(),
-                    object : XposedBridge.MethodHookCallback() {
-                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
-                        }
-
-                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
-                            musicServiceReference = WeakReference(param.thisObject)
-                            hookPlaybackMethods(param.thisObject)
-                            hookLyricMethods(param.thisObject)
-                        }
-                    }
-                )
-            }
+            hookConstructor(YukiHookBill)
+            hookPlaybackMethods(YukiHookBill)
+            hookLyricMethods(YukiHookBill)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    fun hookPlaybackMethods(service: Any?) {
-        if (service == null) return
-
-        try {
-            val serviceClass = service.javaClass as Class<*>
-            val playMethod = XposedBridge.findMethodExact(
-                serviceClass,
-                "play",
-                arrayOf<Class<*>>(Any::class.java)
-            )
-            if (playMethod != null) {
-                XposedBridge.hookMethod(
-                    serviceClass,
-                    "play",
-                    arrayOf<Class<*>>(Any::class.java),
-                    object : XposedBridge.MethodHookCallback() {
-                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
-                        }
-
-                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
-                            isPlaying = true
-                            handler.removeCallbacks(progressRunnable)
-                            handler.post(progressRunnable)
-                        }
-                    }
-                )
+    private fun hookConstructor(YukiHookBill: YukiHookBill) {
+        YukiHookBill.fromClass("com.salt.music.service.MusicService")
+            .hookConstructor {
+                after {
+                    musicServiceReference = WeakReference(thisObject)
+                    hookPlaybackMethods(thisObject)
+                    hookLyricMethods(thisObject)
+                }
             }
+    }
+
+    private fun hookPlaybackMethods(YukiHookBill: YukiHookBill) {
+        try {
+            YukiHookBill.fromClass("com.salt.music.service.MusicService")
+                .hookMethod("play") {
+                    after {
+                        isPlaying = true
+                        handler.removeCallbacks(progressRunnable)
+                        handler.post(progressRunnable)
+                    }
+                }
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
         try {
-            val pauseMethod = XposedBridge.findMethodExact(
-                service.javaClass as Class<*>,
-                "pause",
-                arrayOf<Class<*>>()
-            )
-            if (pauseMethod != null) {
-                XposedBridge.hookMethod(
-                    service.javaClass as Class<*>,
-                    "pause",
-                    arrayOf<Class<*>>(),
-                    object : XposedBridge.MethodHookCallback() {
-                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
-                        }
-
-                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
-                            isPlaying = false
-                            handler.removeCallbacks(progressRunnable)
-                        }
+            YukiHookBill.fromClass("com.salt.music.service.MusicService")
+                .hookMethod("pause") {
+                    after {
+                        isPlaying = false
+                        handler.removeCallbacks(progressRunnable)
                     }
-                )
-            }
+                }
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
         try {
-            val resumeMethod = XposedBridge.findMethodExact(
-                service.javaClass as Class<*>,
-                "resume",
-                arrayOf<Class<*>>()
-            )
-            if (resumeMethod != null) {
-                XposedBridge.hookMethod(
-                    service.javaClass as Class<*>,
-                    "resume",
-                    arrayOf<Class<*>>(),
-                    object : XposedBridge.MethodHookCallback() {
-                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
-                        }
-
-                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
-                            isPlaying = true
-                            handler.removeCallbacks(progressRunnable)
-                            handler.post(progressRunnable)
-                        }
+            YukiHookBill.fromClass("com.salt.music.service.MusicService")
+                .hookMethod("resume") {
+                    after {
+                        isPlaying = true
+                        handler.removeCallbacks(progressRunnable)
+                        handler.post(progressRunnable)
                     }
-                )
-            }
+                }
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
         try {
-            val stopMethod = XposedBridge.findMethodExact(
-                service.javaClass as Class<*>,
-                "stop",
-                arrayOf<Class<*>>()
-            )
-            if (stopMethod != null) {
-                XposedBridge.hookMethod(
-                    service.javaClass as Class<*>,
-                    "stop",
-                    arrayOf<Class<*>>(),
-                    object : XposedBridge.MethodHookCallback() {
-                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
-                        }
-
-                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
-                            isPlaying = false
-                            handler.removeCallbacks(progressRunnable)
-                        }
+            YukiHookBill.fromClass("com.salt.music.service.MusicService")
+                .hookMethod("stop") {
+                    after {
+                        isPlaying = false
+                        handler.removeCallbacks(progressRunnable)
                     }
-                )
-            }
+                }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    fun hookLyricMethods(service: Any?) {
-        if (service == null) return
-
+    private fun hookLyricMethods(YukiHookBill: YukiHookBill) {
         try {
-            val setLyricMethod = XposedBridge.findMethodExact(
-                service.javaClass as Class<*>,
-                "setLyric",
-                arrayOf<Class<*>>(String::class.java)
-            )
-            if (setLyricMethod != null) {
-                XposedBridge.hookMethod(
-                    service.javaClass as Class<*>,
-                    "setLyric",
-                    arrayOf<Class<*>>(String::class.java),
-                    object : XposedBridge.MethodHookCallback() {
-                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
-                        }
-
-                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
-                            val lyricContent = param.args.getOrNull(0) as? String
-                            if (lyricContent != null) {
-                                parseAndNotifyLyric(lyricContent)
-                            }
+            YukiHookBill.fromClass("com.salt.music.service.MusicService")
+                .hookMethod("setLyric") {
+                    after {
+                        val lyricContent = args.getOrNull(0) as? String
+                        if (lyricContent != null) {
+                            parseAndNotifyLyric(lyricContent)
                         }
                     }
-                )
-            }
+                }
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
         try {
-            val onLyricChangedMethod = XposedBridge.findMethodExact(
-                service.javaClass as Class<*>,
-                "onLyricChanged",
-                arrayOf<Class<*>>(Any::class.java)
-            )
-            if (onLyricChangedMethod != null) {
-                XposedBridge.hookMethod(
-                    service.javaClass as Class<*>,
-                    "onLyricChanged",
-                    arrayOf<Class<*>>(Any::class.java),
-                    object : XposedBridge.MethodHookCallback() {
-                        override fun beforeHookedMethod(param: XposedBridge.MethodHookParam) {
-                        }
-
-                        override fun afterHookedMethod(param: XposedBridge.MethodHookParam) {
-                            val lyricContent = param.args.getOrNull(0) as? String
-                            if (lyricContent != null) {
-                                parseAndNotifyLyric(lyricContent)
-                            }
+            YukiHookBill.fromClass("com.salt.music.service.MusicService")
+                .hookMethod("onLyricChanged") {
+                    after {
+                        val lyricContent = args.getOrNull(0) as? String
+                        if (lyricContent != null) {
+                            parseAndNotifyLyric(lyricContent)
                         }
                     }
-                )
-            }
+                }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    fun updateMusicInfo(title: String, artist: String, album: String, duration: Long, path: String?, artworkUri: String?) {
-        currentMusicInfo = MusicInfo(
-            title = title,
-            artist = artist,
-            album = album,
-            duration = duration,
-            path = path,
-            artworkUri = artworkUri
-        )
-        currentDuration = duration
-        notifyMusicInfo()
+    private fun hookPlaybackMethods(service: Any?) {
     }
 
-    fun updateLyricContent(lyricContent: String) {
-        parseAndNotifyLyric(lyricContent)
-    }
-
-    fun updatePosition(position: Long, duration: Long) {
-        currentPosition = position
-        currentDuration = duration
-        updateLyricProgress()
+    private fun hookLyricMethods(service: Any?) {
     }
 
     private fun parseAndNotifyLyric(content: String) {
