@@ -1,6 +1,5 @@
 package com.saltplayer.lyric.provider
 
-import android.content.Context
 import com.saltplayer.lyric.provider.bridge.LyricBridge
 import com.saltplayer.lyric.provider.bridge.LyricBridgeManager
 import com.saltplayer.lyric.provider.hook.SaltPlayerHooker
@@ -8,31 +7,45 @@ import com.saltplayer.lyric.provider.hook.XposedBridge
 import com.saltplayer.lyric.provider.model.LyricInfo
 import com.saltplayer.lyric.provider.model.MusicInfo
 import com.saltplayer.lyric.provider.model.PlaybackState
-import de.robv.android.xposed.IXposedHookLoadPackage
-import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-class SaltPlayerModule : IXposedHookLoadPackage {
+object SaltPlayerModule {
 
-    companion object {
-        private const val TAG = "SaltPlayerLyricProvider"
-        private const val SALT_PLAYER_PACKAGE = "com.salt.music"
-    }
+    private const val SALT_PLAYER_PACKAGE = "com.salt.music"
 
-    override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam?) {
-        if (lpparam == null) return
-
+    @JvmStatic
+    fun handleLoadPackage(lpparam: Any) {
         try {
-            val packageName = lpparam.packageName
+            val packageName = getPackageName(lpparam)
             if (packageName != SALT_PLAYER_PACKAGE) {
                 return
             }
 
-            val classLoader = lpparam.classLoader
+            val classLoader = getClassLoader(lpparam)
+            if (!XposedBridge.initialize(classLoader)) {
+                return
+            }
 
             hookMusicService(classLoader)
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private fun getClassLoader(lpparam: Any): ClassLoader {
+        return try {
+            val method = lpparam.javaClass.getMethod("getClassLoader")
+            method.invoke(lpparam) as ClassLoader
+        } catch (e: Exception) {
+            Thread.currentThread().contextClassLoader
+        }
+    }
+
+    private fun getPackageName(lpparam: Any): String {
+        return try {
+            val field = lpparam.javaClass.getField("packageName")
+            field.get(lpparam) as String
+        } catch (e: Exception) {
+            ""
         }
     }
 
